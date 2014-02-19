@@ -89,7 +89,7 @@ define(function(require) {
                         return;
                     }
 
-                    callback(null, mailbuilder.getEnvelope, mailbuilder.build());
+                    callback(null, mailbuilder.getEnvelope(), mailbuilder.build());
                 });
                 return;
             }
