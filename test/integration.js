@@ -134,9 +134,13 @@ define(function(require) {
                         content: expectedAttachmentPayload
                     }]
                 };
+                cb = function(err, envelope, rfcMessage) {
+                    //
+                    // Verification
+                    //
 
-                cb = function(err, rfcMessage) {
                     expect(err).to.not.exist;
+                    expect(envelope).to.exist;
                     expect(rfcMessage).to.exist;
 
                     var pgpPrefix = '-----BEGIN PGP MESSAGE-----';

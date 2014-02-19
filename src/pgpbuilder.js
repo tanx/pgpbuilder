@@ -62,7 +62,7 @@ define(function(require) {
      * @param {Array} options.mail.attachments (optional) Array of attachment objects with filename {String}, content {Uint8Array}, and mimeType {String}
      * @param {Object} options.cleartextMessage (optional) A clear text message in addition to the encrypted message
      * @param {Array} options.publicKeysArmored The public keys with which the message should be encrypted
-     * @param {Function} callback(error) Indicates that the mail has been sent, or gives information in case an error occurred.
+     * @param {Function} callback(error, envelope, rfcMessage) Indicates that the mail has been sent, or gives information in case an error occurred.
      */
     PgpBuilder.prototype.build = function(options, callback, builder) {
         var self = this,
@@ -89,12 +89,12 @@ define(function(require) {
                         return;
                     }
 
-                    callback(null, mailbuilder.build());
+                    callback(null, mailbuilder.getEnvelope, mailbuilder.build());
                 });
                 return;
             }
 
-            callback(null, mailbuilder.build());
+            callback(null, mailbuilder.getEnvelope, mailbuilder.build());
         });
     };
 

@@ -271,12 +271,13 @@ define(function(require) {
                     }
                 }]).returns({});
 
-                cb = function(err, message) {
+                cb = function(err, envelope, message) {
                     //
                     // Verification
                     //
 
                     expect(err).to.not.exist;
+                    expect(envelope).to.exist;
                     expect(message).to.exist;
 
                     // check the envelope setting
@@ -417,12 +418,13 @@ define(function(require) {
                     }
                 }]).returns({});
 
-                cb = function(err, message) {
+                cb = function(err, envelope, message) {
                     //
                     // Verification
                     //
 
                     expect(err).to.not.exist;
+                    expect(envelope).to.exist;
                     expect(message).to.exist;
 
                     // check the envelope setting
