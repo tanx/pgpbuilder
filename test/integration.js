@@ -117,6 +117,7 @@ define(function(require) {
                     expectedAttachmentPayload = utf8ToUInt8Array(randomBinStr);
                 }
 
+                var body = 'hello, world!';
                 mail = {
                     from: [{
                         address: 'a@a.io'
@@ -127,27 +128,22 @@ define(function(require) {
                         address: 'c@c.io'
                     }],
                     subject: 'foobar',
-                    body: 'hello, world!',
+                    body: body,
                     attachments: [{
                         mimeType: 'text/x-markdown',
                         filename: 'a.txt',
                         content: expectedAttachmentPayload
                     }]
                 };
-                cb = function(err, envelope, rfcMessage) {
+                cb = function(err, mail) {
                     //
                     // Verification
                     //
 
                     expect(err).to.not.exist;
-                    expect(envelope).to.exist;
-                    expect(rfcMessage).to.exist;
+                    expect(mail).to.exist;
 
-                    var pgpPrefix = '-----BEGIN PGP MESSAGE-----';
-                    var pgpSuffix = '-----END PGP MESSAGE-----';
-                    var pgpMessage = pgpPrefix + rfcMessage.split(pgpPrefix).pop().split(pgpSuffix).shift() + pgpSuffix;
-
-                    var pgpMessageObj = openpgp.message.readArmored(pgpMessage);
+                    var pgpMessageObj = openpgp.message.readArmored(mail.body);
                     var publicKeyObj = openpgp.key.readArmored(pubkeyArmored).keys[0];
 
                     var decrypted = openpgp.decryptAndVerifyMessage(pgpbuilder._privateKey, [publicKeyObj], pgpMessageObj);
@@ -158,7 +154,7 @@ define(function(require) {
                     var parser = new MailParser();
                     parser.on('end', function(parsedMail) {
                         expect(parsedMail).to.exist;
-                        expect(parsedMail.text.replace(/\n/g, '')).to.equal(mail.body);
+                        expect(parsedMail.text.replace(/\n/g, '')).to.equal(body);
                         var attachmentBinStr = parsedMail.attachments[0].content.toString('binary');
                         var attachmentPayload = utf8ToUInt8Array(attachmentBinStr);
                         expect(attachmentPayload.length).to.equal(expectedAttachmentPayload.length);
@@ -174,11 +170,9 @@ define(function(require) {
                 //
 
                 // queue the mail
-                pgpbuilder.build({
+                pgpbuilder.encrypt({
                     mail: mail,
-                    encrypt: true,
-                    publicKeysArmored: publicKeysArmored,
-                    cleartextMessage: cleartextMessage
+                    publicKeysArmored: publicKeysArmored
                 }, cb);
             });
         });

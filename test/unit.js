@@ -113,35 +113,24 @@ define(function(require) {
             });
         });
 
-        describe('build', function() {
-            this.timeout(100000);
 
-            it('should send an encrypted signed message with attachments', function(done) {
-                var cb, mail, mockCiphertext, mockPlaintext, mockCompiledMail, mockSignature,
-                    readArmoredStub, signAndEncryptStub, signClearStub, publicKeysArmored;
+        describe('buildSigned', function() {
+            it('should build signed plaintext rfc', function(done) {
+                var mail, mockBody, mockCompiledMail, mockPlaintext, signClearStub, mockSignature;
 
-                //
-                // Setup Fixture
-                //
-
-                publicKeysArmored = ['publicA', 'publicB', 'publicC', 'publicD', 'publicE'];
+                mockBody = 'trollolololo';
+                mockCompiledMail = 'wow much mail';
+                mockSignature = '-----BEGIN PGP SIGNATURE-----UMBAPALLUMBA-----END PGP SIGNATURE-----';
+                mockPlaintext = 'dsgsleahfbaldsjgnse';
+                
                 mail = {
-                    from: [{
-                        address: 'a@a.io'
-                    }],
-                    to: [{
-                        address: 'b@b.io'
-                    }, {
-                        address: 'c@c.io'
-                    }],
-                    cc: [{
-                        address: 'd@d.io'
-                    }],
-                    bcc: [{
-                        address: 'e@e.io'
-                    }],
+                    from: [{ address: 'a@a.io' }],
+                    to: [{ address: 'b@b.io'}, { address: 'c@c.io' }],
+                    cc: [{ address: 'd@d.io' }],
+                    bcc: [{ address: 'e@e.io' }],
                     subject: 'foobar',
-                    body: 'hello, world!',
+                    encrypted: true,
+                    body: mockBody,
                     attachments: [{
                         mimeType: 'text/plain',
                         filename: 'a.txt',
@@ -149,22 +138,9 @@ define(function(require) {
                     }]
                 };
 
-                mockCompiledMail = 'THIS! IS! PGP!';
-                mockCiphertext = 'MORE PGP THAN YOU CAN HANDLE!';
-                mockPlaintext = 'BLABLABLABLAYADDAYADDA\r\n\r\n';
-                mockSignature = '-----BEGIN PGP SIGNATURE-----UMBAPALLUMBA-----END PGP SIGNATURE-----';
-
-                readArmoredStub = sinon.stub(openpgp.key, 'readArmored');
-                readArmoredStub.returns({
-                    keys: [{}]
-                });
-                signAndEncryptStub = sinon.stub(openpgp, 'signAndEncryptMessage');
-                signAndEncryptStub.yields(null, mockCiphertext);
                 signClearStub = sinon.stub(openpgp, 'signClearMessage');
                 signClearStub.withArgs([pgpbuilder._privateKey], mockPlaintext.trim() + '\r\n').yields(null, mockSignature);
-
                 contentNodeMock.build.returns(mockPlaintext);
-                builderMock.build.returns(mockCompiledMail);
                 builderMock.getEnvelope.returns({});
                 builderMock.createNode.withArgs([{
                     key: 'Content-Type',
@@ -174,6 +150,10 @@ define(function(require) {
                         protocol: 'application/pgp-signature'
                     }
                 }]).returns(rootNodeMock);
+
+                contentNodeMock.build.returns(mockPlaintext);
+                builderMock.getEnvelope.returns({});
+                builderMock.build.returns(mockCompiledMail);
 
                 rootNodeMock.createNode.withArgs([{
                     key: 'Content-Type',
@@ -212,6 +192,56 @@ define(function(require) {
                         filename: mail.attachments[0].filename
                     }
                 }]).returns({});
+
+                pgpbuilder.buildSigned({
+                    mail: mail,
+                }, function(error, build, envelope) {
+                    expect(error).to.not.exist;
+                    expect(build).to.exist;
+                    expect(envelope).to.exist;
+
+                    expect(builderMock.createNode.calledOnce).to.be.true;
+                    expect(rootNodeMock.createNode.calledTwice).to.be.true;
+                    expect(contentNodeMock.createNode.calledTwice).to.be.true;
+
+                    expect(builderMock.setSubject.calledOnce).to.be.true;
+                    expect(builderMock.setFrom.calledOnce).to.be.true;
+                    expect(builderMock.addTo.calledTwice).to.be.true;
+                    expect(builderMock.addCc.calledOnce).to.be.true;
+                    expect(builderMock.addBcc.calledOnce).to.be.true;
+                    expect(builderMock.setSubject.calledWith(mail.subject)).to.be.true;
+                    expect(builderMock.setFrom.calledWith(mail.from[0].address)).to.be.true;
+                    expect(builderMock.addTo.calledWith(mail.to[0].address)).to.be.true;
+                    expect(builderMock.addTo.calledWith(mail.to[1].address)).to.be.true;
+                    expect(builderMock.addCc.calledWith(mail.cc[0].address)).to.be.true;
+                    expect(builderMock.addBcc.calledWith(mail.bcc[0].address)).to.be.true;
+
+                    openpgp.signClearMessage.restore();
+
+                    done();
+                }, builderMock);
+            });
+        });
+
+        describe('buildEncrypted', function() {
+            it('should build encrypted rfc', function() {
+                var mail, mockBody, mockCleartext, mockCompiledMail;
+
+                mockBody = 'trollolololo';
+                mockCleartext = 'dfliablgiabdfliubsdl';
+                mockCompiledMail = 'wow much mail';
+                mail = {
+                    from: [{ address: 'a@a.io' }],
+                    to: [{ address: 'b@b.io'}, { address: 'c@c.io' }],
+                    cc: [{ address: 'd@d.io' }],
+                    bcc: [{ address: 'e@e.io' }],
+                    subject: 'foobar',
+                    encrypted: true,
+                    body: mockBody
+                };
+
+                builderMock.getEnvelope.returns({});
+                builderMock.build.returns(mockCompiledMail);
 
                 builderMock.createNode.withArgs([{
                     key: 'Content-Type',
@@ -271,16 +301,18 @@ define(function(require) {
                     }
                 }]).returns({});
 
-                cb = function(err, envelope, message) {
-                    //
-                    // Verification
-                    //
-
-                    expect(err).to.not.exist;
+                pgpbuilder.buildEncrypted({
+                    mail: mail,
+                    cleartextMessage: mockCleartext
+                }, function(error, build, envelope) {
+                    expect(error).to.not.exist;
+                    expect(build).to.exist;
                     expect(envelope).to.exist;
-                    expect(message).to.exist;
 
-                    // check the envelope setting
+                    expect(builderMock.createNode.calledOnce).to.be.true;
+                    expect(multipartRootMock.createNode.calledTwice).to.be.true;
+                    expect(encryptedRootMock.createNode.calledTwice).to.be.true;
+
                     expect(builderMock.setSubject.calledOnce).to.be.true;
                     expect(builderMock.setFrom.calledOnce).to.be.true;
                     expect(builderMock.addTo.calledTwice).to.be.true;
@@ -292,67 +324,58 @@ define(function(require) {
                     expect(builderMock.addTo.calledWith(mail.to[1].address)).to.be.true;
                     expect(builderMock.addCc.calledWith(mail.cc[0].address)).to.be.true;
                     expect(builderMock.addBcc.calledWith(mail.bcc[0].address)).to.be.true;
+                }, builderMock);
+            });
+        });
 
-                    // check that the mailbuilder has built a clear text and a pgp mail and compiled the pgp mail
-                    expect(builderMock.build.calledOnce).to.be.true;
-                    expect(builderMock.createNode.callCount).to.equal(2);
-                    expect(rootNodeMock.createNode.calledTwice).to.be.true;
-                    expect(contentNodeMock.createNode.calledTwice).to.be.true;
-                    expect(encryptedRootMock.createNode.calledTwice).to.be.true;
-                    expect(multipartRootMock.createNode.calledTwice).to.be.true;
+        describe('reencrypt', function() {
+            it('should reencrypt', function(done) {
+                var readArmoredStub, signAndEncryptStub, decryptStub,
+                    encryptedMail, mockCiphertext, mockPlaintext,
+                    publicKeysArmored;
 
-                    // check that the pgp lib was called
-                    expect(signClearStub.calledOnce).to.be.true;
-                    expect(readArmoredStub.callCount).to.equal(publicKeysArmored.length);
-                    publicKeysArmored.forEach(function(armored) {
-                        expect(readArmoredStub.calledWith(armored)).to.be.true;
-                    });
-                    expect(signAndEncryptStub.calledOnce).to.be.true;
+                mockCiphertext = 'MORE PGP THAN YOU CAN HANDLE!';
+                mockPlaintext = 'BLABLABLABLAYADDAYADDA\r\n\r\n';
 
-                    // restore stubs
-                    openpgp.key.readArmored.restore();
-                    openpgp.signAndEncryptMessage.restore();
-                    openpgp.signClearMessage.restore();
-
-                    done();
+                encryptedMail = {
+                    body: mockCiphertext
                 };
 
-                //
-                // Execute Test
-                //
+                publicKeysArmored = ['publicA', 'publicB', 'publicC', 'publicD', 'publicE'];
+                decryptStub = sinon.stub(openpgp, 'decryptMessage');
+                decryptStub.withArgs(pgpbuilder._privateKey, mockCiphertext).yieldsAsync(null, mockPlaintext);
+                signAndEncryptStub = sinon.stub(openpgp, 'signAndEncryptMessage');
+                signAndEncryptStub.withArgs(sinon.match.any, pgpbuilder._privateKey, mockPlaintext).yieldsAsync(null, mockCiphertext);
+                readArmoredStub = sinon.stub(openpgp.key, 'readArmored');
+                readArmoredStub.returns({
+                    keys: [{}]
+                });
 
-                pgpbuilder.build({
-                    mail: mail,
-                    encrypt: true,
+                pgpbuilder.reEncrypt({
                     publicKeysArmored: publicKeysArmored,
-                    cleartextMessage: 'hello!'
-                }, cb, builderMock);
+                    mail: encryptedMail
+                }, function(err, reencryptedMail) {
+                    expect(err).to.not.exist;
+                    expect(reencryptedMail).to.exist;
+                    expect(reencryptedMail).to.equal(encryptedMail);
+
+                    openpgp.key.readArmored.restore();
+                    openpgp.signAndEncryptMessage.restore();
+                    openpgp.decryptMessage.restore();
+
+                    done();
+                });
             });
+        });
 
-            it('should send a signed message in the clear', function(done) {
-                var cb, mail, mockPlaintext, mockCompiledMail, mockSignature, signClearStub, publicKeysArmored;
-
-                //
-                // Setup Fixture
-                //
+        describe('encrypt', function() {
+            it('should encrypt the mail body', function(done) {
+                var mail, publicKeysArmored, mockCiphertext, mockPlaintext, mockSignature,
+                    readArmoredStub, signAndEncryptStub, signClearStub,
+                    cb;
 
                 publicKeysArmored = ['publicA', 'publicB', 'publicC', 'publicD', 'publicE'];
                 mail = {
-                    from: [{
-                        address: 'a@a.io'
-                    }],
-                    to: [{
-                        address: 'b@b.io'
-                    }, {
-                        address: 'c@c.io'
-                    }],
-                    cc: [{
-                        address: 'd@d.io'
-                    }],
-                    bcc: [{
-                        address: 'e@e.io'
-                    }],
-                    subject: 'foobar',
                     body: 'hello, world!',
                     attachments: [{
                         mimeType: 'text/plain',
@@ -361,15 +384,19 @@ define(function(require) {
                     }]
                 };
 
-                mockCompiledMail = 'THIS! IS! PGP!';
+                mockCiphertext = 'MORE PGP THAN YOU CAN HANDLE!';
                 mockPlaintext = 'BLABLABLABLAYADDAYADDA\r\n\r\n';
                 mockSignature = '-----BEGIN PGP SIGNATURE-----UMBAPALLUMBA-----END PGP SIGNATURE-----';
-
                 signClearStub = sinon.stub(openpgp, 'signClearMessage');
                 signClearStub.withArgs([pgpbuilder._privateKey], mockPlaintext.trim() + '\r\n').yields(null, mockSignature);
+                signAndEncryptStub = sinon.stub(openpgp, 'signAndEncryptMessage');
+                signAndEncryptStub.yields(null, mockCiphertext);
+                readArmoredStub = sinon.stub(openpgp.key, 'readArmored');
+                readArmoredStub.returns({
+                    keys: [{}]
+                });
 
                 contentNodeMock.build.returns(mockPlaintext);
-                builderMock.build.returns(mockCompiledMail);
                 builderMock.getEnvelope.returns({});
                 builderMock.createNode.withArgs([{
                     key: 'Content-Type',
@@ -418,67 +445,41 @@ define(function(require) {
                     }
                 }]).returns({});
 
-                cb = function(err, envelope, message) {
+                cb = function(err, message) {
                     //
                     // Verification
                     //
 
                     expect(err).to.not.exist;
-                    expect(envelope).to.exist;
                     expect(message).to.exist;
-
-                    // check the envelope setting
-                    expect(builderMock.setSubject.calledOnce).to.be.true;
-                    expect(builderMock.setFrom.calledOnce).to.be.true;
-                    expect(builderMock.addTo.calledTwice).to.be.true;
-                    expect(builderMock.addCc.calledOnce).to.be.true;
-                    expect(builderMock.addBcc.calledOnce).to.be.true;
-                    expect(builderMock.setSubject.calledWith(mail.subject)).to.be.true;
-                    expect(builderMock.setFrom.calledWith(mail.from[0].address)).to.be.true;
-                    expect(builderMock.addTo.calledWith(mail.to[0].address)).to.be.true;
-                    expect(builderMock.addTo.calledWith(mail.to[1].address)).to.be.true;
-                    expect(builderMock.addCc.calledWith(mail.cc[0].address)).to.be.true;
-                    expect(builderMock.addBcc.calledWith(mail.bcc[0].address)).to.be.true;
+                    expect(message.attachments).to.be.empty;
+                    expect(message.encrypted).to.be.true;
 
                     // check that the mailbuilder has built a clear text and a pgp mail and compiled the pgp mail
                     expect(builderMock.createNode.calledOnce).to.be.true;
-                    expect(builderMock.build.calledOnce).to.be.true;
                     expect(rootNodeMock.createNode.calledTwice).to.be.true;
                     expect(contentNodeMock.createNode.calledTwice).to.be.true;
-                    expect(encryptedRootMock.createNode.called).to.be.false;
 
                     // check that the pgp lib was called
                     expect(signClearStub.calledOnce).to.be.true;
+                    expect(readArmoredStub.callCount).to.equal(publicKeysArmored.length);
+                    publicKeysArmored.forEach(function(armored) {
+                        expect(readArmoredStub.calledWith(armored)).to.be.true;
+                    });
+                    expect(signAndEncryptStub.calledOnce).to.be.true;
 
                     // restore stubs
+                    openpgp.key.readArmored.restore();
+                    openpgp.signAndEncryptMessage.restore();
                     openpgp.signClearMessage.restore();
 
                     done();
                 };
 
-                //
-                // Execute Test
-                //
-
-                pgpbuilder.build({
+                pgpbuilder.encrypt({
                     mail: mail,
-                    publicKeysArmored: publicKeysArmored,
-                    cleartextMessage: 'hello!'
+                    publicKeysArmored: publicKeysArmored
                 }, cb, builderMock);
-            });
-
-            it('should not send without a private key', function(done) {
-                delete pgpbuilder._privateKey;
-
-                pgpbuilder.build({
-                    mail: {},
-                    publicKeysArmored: [],
-                    cleartextMessage: 'hello!'
-                }, function(error) {
-                    expect(error).to.exist;
-
-                    done();
-                });
             });
         });
     });
