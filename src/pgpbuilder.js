@@ -71,6 +71,8 @@ define(function(require) {
 
         mailbuilder = builder || new Mailbuilder();
 
+        options.mail.attachments = options.mail.attachments || [];
+
         // create the signed mime tree
         self._createSignedMimeTree(options.mail, mailbuilder, onSigned);
 
