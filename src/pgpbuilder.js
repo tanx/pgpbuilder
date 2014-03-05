@@ -344,7 +344,7 @@ define(function(require) {
             value: '7bit'
         }]);
 
-        cleartext = contentNode.build().trim() + '\r\n';
+        cleartext = contentNode.build();
         openpgp.signClearMessage([self._privateKey], cleartext, onSigned);
 
         function onSigned(err, signedCleartext) {

@@ -22,7 +22,7 @@
     "test": "grunt"
   },
   "dependencies": {
-    "mailbuilder": "https://github.com/whiteout-io/mailbuilder/tarball/master",
+    "mailbuilder": "https://github.com/whiteout-io/mailbuilder/tarball/dev/fix-signature",
     "openpgp": "~0.4.0"
   },
   "devDependencies": {
