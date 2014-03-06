@@ -139,7 +139,7 @@ define(function(require) {
                 };
 
                 signClearStub = sinon.stub(openpgp, 'signClearMessage');
-                signClearStub.withArgs([pgpbuilder._privateKey], mockPlaintext.trim() + '\r\n').yields(null, mockSignature);
+                signClearStub.withArgs([pgpbuilder._privateKey], mockPlaintext).yields(null, mockSignature);
                 contentNodeMock.build.returns(mockPlaintext);
                 builderMock.getEnvelope.returns({});
                 builderMock.createNode.withArgs([{
@@ -388,7 +388,7 @@ define(function(require) {
                 mockPlaintext = 'BLABLABLABLAYADDAYADDA\r\n\r\n';
                 mockSignature = '-----BEGIN PGP SIGNATURE-----UMBAPALLUMBA-----END PGP SIGNATURE-----';
                 signClearStub = sinon.stub(openpgp, 'signClearMessage');
-                signClearStub.withArgs([pgpbuilder._privateKey], mockPlaintext.trim() + '\r\n').yields(null, mockSignature);
+                signClearStub.withArgs([pgpbuilder._privateKey], mockPlaintext).yields(null, mockSignature);
                 signAndEncryptStub = sinon.stub(openpgp, 'signAndEncryptMessage');
                 signAndEncryptStub.yields(null, mockCiphertext);
                 readArmoredStub = sinon.stub(openpgp.key, 'readArmored');
