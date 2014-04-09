@@ -22,8 +22,8 @@
     "test": "grunt"
   },
   "dependencies": {
-    "mailbuilder": "https://github.com/whiteout-io/mailbuilder/tarball/v0.1.0",
-    "openpgp": "~0.4.0"
+    "mailbuild": "https://github.com/whiteout-io/mailbuild/tarball/v0.2.0",
+    "openpgp": "~0.5.1"
   },
   "devDependencies": {
     "mailparser": "https://github.com/whiteout-io/mailparser/tarball/amd",
