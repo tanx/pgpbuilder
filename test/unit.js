@@ -21,6 +21,6 @@ require.config({
 });
 
 mocha.setup('bdd');
-require(['unit-test', 'integration-test'], function() {
+require(['unit-test'], function() {
     (window.mochaPhantomJS || window.mocha).run();
 });
