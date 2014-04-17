@@ -106,7 +106,7 @@ define(function(require) {
                 cleartextMessage = 'yes! this is very secure!';
                 publicKeysArmored = [pubkeyArmored];
 
-                var size = 10000;
+                var size = 1000;
                 if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
                     var arr = new Uint8Array(size);
                     window.crypto.getRandomValues(arr);
