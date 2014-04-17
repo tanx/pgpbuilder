@@ -1,16 +1,13 @@
-if (typeof module === 'object' && typeof define !== 'function') {
+'use strict';
+if (typeof exports === 'object' && typeof define !== 'function') {
     var define = function(factory) {
-        'use strict';
-
         module.exports = factory(require, exports, module);
     };
 }
 
 define(function(require) {
-    'use strict';
-
     var openpgp = require('openpgp'),
-        Mailbuilder = require('mailbuilder'),
+        Mailbuild = require('mailbuild'),
         PgpBuilder;
 
     /**
@@ -36,7 +33,6 @@ define(function(require) {
     PgpBuilder.prototype.setPrivateKey = function(options, callback) {
         var privateKey;
 
-
         // decrypt the private key (for signing)
         try {
             privateKey = openpgp.key.readArmored(options.privateKeyArmored).keys[0];
@@ -60,29 +56,28 @@ define(function(require) {
      * @param {Array} options.publicKeysArmored The public keys with which the message should be encrypted
      * @param {Function} callback(error, mail) Invoked when the mail has been encrypted, or contains information in case of an error
      */
-    PgpBuilder.prototype.encrypt = function(options, callback, builder) {
-        var self = this,
-            mailbuilder;
+    PgpBuilder.prototype.encrypt = function(options, callback) {
+        var self = this;
 
         if (!this._privateKey) {
             callback(new Error('No private key has been set. Cannot sign mails!'));
             return;
         }
 
-        mailbuilder = builder || new Mailbuilder();
-
         options.mail.attachments = options.mail.attachments || [];
 
-        // create the signed mime tree
-        self._createSignedMimeTree(options.mail, mailbuilder, onSigned);
+        var rootNode = options.rootNode || new Mailbuild();
 
-        function onSigned(err) {
+        // create the signed mime tree
+        self._createSignedMimeTree(options.mail, rootNode, onBuild);
+
+        function onBuild(err) {
             if (err) {
                 callback(err);
                 return;
             }
 
-            var plaintext = mailbuilder.node.build(),
+            var plaintext = rootNode.build(),
                 publicKeys = [];
 
             // parse the ASCII-armored public keys to encrypt the signed mime tree
@@ -116,57 +111,6 @@ define(function(require) {
     };
 
     /**
-     * Decrypts an encrypted mail body and re-encrypts it with a new set of public keys. Attaches an encrypted = true flag to options.mail if successful.
-     * @param {String} options.mail.body Plain text body to be sent with the mail
-     * @param {Array} options.publicKeysArmored The new set of public keys with which the message should be encrypted
-     * @param {Function} callback(error, mail) Invoked when the mail has been re-encrypted, or contains information in case of an error
-     */
-    PgpBuilder.prototype.reEncrypt = function(options, callback) {
-        var self = this,
-            publicKeys = [];
-
-        if (!self._privateKey) {
-            callback(new Error('No private key has been set. Cannot re-encrypt mails!'));
-            return;
-        }
-
-        // decrypt the pgp message to retrieve the plain text
-        openpgp.decryptMessage(this._privateKey, options.mail.body, onDecrypted);
-
-        function onDecrypted(err, decrypted) {
-            if (err) {
-                callback(err);
-                return;
-            }
-
-            // parse the ASCII-armored public keys to encrypt the body
-            try {
-                options.publicKeysArmored.forEach(function(key) {
-                    publicKeys.push(openpgp.key.readArmored(key).keys[0]);
-                });
-            } catch (err) {
-                callback(err);
-                return;
-            }
-
-            // re-encrypt the plain text
-            openpgp.signAndEncryptMessage(publicKeys, self._privateKey, decrypted, onEncrypted);
-        }
-
-        function onEncrypted(err, ciphertext) {
-            if (err) {
-                callback(err);
-                return;
-            }
-
-            // place the newly encrypted ciphertext in the mail body
-            options.mail.body = ciphertext;
-
-            callback(null, options.mail);
-        }
-    };
-
-    /**
      * Builds the complete encrypted RFC message to be sent via SMTP. It is necessary to call encrypt() before.
      * @param {Object} options.mail.from Array containing one object with the ASCII string representing the sender address, e.g. 'foo@bar.io'
      * @param {String} options.mail.body PGP-Encrypted mail body
@@ -177,24 +121,21 @@ define(function(require) {
      * @param {Object} options.cleartextMessage (optional) A clear text message in addition to the encrypted message
      * @param {Function} callback(error, rfcMessage, smtpInfo) Invoked when the mail has been built and the smtp information has been created, or gives information in case an error occurred.
      */
-    PgpBuilder.prototype.buildEncrypted = function(options, callback, builder) {
-        var self = this,
-            mailbuilder;
-
+    PgpBuilder.prototype.buildEncrypted = function(options, callback) {
         // only build the encrypted rfc message for mails that have been encrypted before...
         if (!options.mail.encrypted) {
             callback(new Error('The mail was not encrypted'));
         }
 
-        mailbuilder = builder || new Mailbuilder();
-
-        // configure the envelope
-        self._setBuilderEnvelope(options.mail, mailbuilder);
+        var rootNode = options.rootNode || new Mailbuild();
 
         // create the PGP/MIME tree
-        self._createPgpMimeTree(options.cleartextMessage, options.mail.body, mailbuilder);
+        this._createEncryptedMimeTree(options.cleartextMessage, options.mail.body, rootNode);
 
-        callback(null, mailbuilder.build(), mailbuilder.getEnvelope());
+        // configure the envelope
+        this._setEnvelope(options.mail, rootNode);
+
+        callback(null, rootNode.build(), rootNode.getEnvelope());
     };
 
     /**
@@ -208,19 +149,18 @@ define(function(require) {
      * @param {Array} options.mail.attachments (optional) Array of attachment objects with filename {String}, content {Uint8Array}, and mimeType {String}
      * @param {Function} callback(error, rfcMessage, smtpInfo) Invoked when the mail has been built and the smtp information has been created, or gives information in case an error occurred.
      */
-    PgpBuilder.prototype.buildSigned = function(options, callback, builder) {
-        var self = this,
-            mailbuilder;
+    PgpBuilder.prototype.buildSigned = function(options, callback) {
+        var self = this;
 
         if (!this._privateKey) {
             callback(new Error('No private key has been set. Cannot sign mails!'));
             return;
         }
 
-        mailbuilder = builder || new Mailbuilder();
+        var rootNode = options.rootNode || new Mailbuild();
 
         // create a signed mime tree
-        self._createSignedMimeTree(options.mail, mailbuilder, onSigned);
+        self._createSignedMimeTree(options.mail, rootNode, onSigned);
 
         function onSigned(err) {
             if (err) {
@@ -229,106 +169,51 @@ define(function(require) {
             }
 
             // configure the envelope data
-            self._setBuilderEnvelope(options.mail, mailbuilder);
+            self._setEnvelope(options.mail, rootNode);
 
-            callback(null, mailbuilder.build(), mailbuilder.getEnvelope());
+            callback(null, rootNode.build(), rootNode.getEnvelope());
         }
     };
 
-    PgpBuilder.prototype._setBuilderEnvelope = function(mail, builder) {
-        // 
-        // create the envelope data
-        // 
-
-        builder.setSubject(mail.subject);
-
-        // add everyone's addresses
-        builder.setFrom(mail.from[0].address || mail.from[0]);
-
-        if (mail.to) {
-            mail.to.forEach(function(recipient) {
-                builder.addTo(recipient.address || recipient);
-            });
-        }
-
-        if (mail.cc) {
-            mail.cc.forEach(function(recipient) {
-                builder.addCc(recipient.address || recipient);
-            });
-        }
-
-        if (mail.bcc) {
-            mail.bcc.forEach(function(recipient) {
-                builder.addBcc(recipient.address || recipient);
-            });
-        }
+    // 
+    // create the envelope data
+    // 
+    PgpBuilder.prototype._setEnvelope = function(mail, rootNode) {
+        rootNode.setHeader({
+            subject: mail.subject,
+            from: mail.from,
+            to: mail.to,
+            cc: mail.cc,
+            bcc: mail.bcc
+        });
     };
 
-    PgpBuilder.prototype._createSignedMimeTree = function(mail, builder, localCallback) {
-        var self = this,
-            parentNode, contentNode, signatureNode,
-            cleartext, signatureHeader;
+    PgpBuilder.prototype._createSignedMimeTree = function(mail, rootNode, callback) {
+        var contentNode, textNode, attmtNode, signatureNode, cleartext;
 
         // 
         // create the mime tree
         // 
 
-        parentNode = builder.createNode([{
-            key: 'Content-Type',
-            value: 'multipart/signed',
-            parameters: {
-                micalg: 'pgp-sha256',
-                protocol: 'application/pgp-signature'
-            }
-        }]);
+        rootNode.setHeader('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature');
 
         // this a plain text mail? then only one text/plain node is needed
         if (!mail.attachments || mail.attachments.length === 0) {
-            contentNode = parentNode.createNode([{
-                key: 'Content-Type',
-                value: 'text/plain',
-                parameters: {
-                    charset: 'utf-8'
-                }
-            }, {
-                key: 'Content-Transfer-Encoding',
-                value: 'quoted-printable'
-            }]);
-            contentNode.content = mail.body;
+            contentNode = rootNode.createChild('text/plain');
+            contentNode.setContent(mail.body);
         } else {
             // we have attachments, so let's create a multipart/mixed mail
-            contentNode = parentNode.createNode([{
-                key: 'Content-Type',
-                value: 'multipart/mixed',
-            }]);
+            contentNode = rootNode.createChild('multipart/mixed');
 
             // create the text/plain node
-            contentNode.createNode([{
-                key: 'Content-Type',
-                value: 'text/plain',
-                parameters: {
-                    charset: 'utf-8'
-                }
-            }, {
-                key: 'Content-Transfer-Encoding',
-                value: 'quoted-printable'
-            }]).content = mail.body;
+            textNode = contentNode.createChild('text/plain');
+            textNode.setContent(mail.body);
 
             // add the attachments
-            mail.attachments.forEach(function(attmt) {
-                contentNode.createNode([{
-                    key: 'Content-Type',
-                    value: attmt.mimeType || 'application/octet-stream'
-                }, {
-                    key: 'Content-Transfer-Encoding',
-                    value: 'base64'
-                }, {
-                    key: 'Content-Disposition',
-                    value: 'attachment',
-                    parameters: {
-                        filename: attmt.filename
-                    }
-                }]).content = attmt.content;
+            mail.attachments.forEach(function(attmtObj) {
+                attmtNode = contentNode.createChild('application/octet-stream');
+                attmtNode.filename = attmtObj.filename;
+                attmtNode.setContent(attmtObj.content.buffer);
             });
         }
 
@@ -336,100 +221,59 @@ define(function(require) {
         // Sign the whole thing
         //
 
-        signatureNode = parentNode.createNode([{
-            key: 'Content-Type',
-            value: 'application/pgp-signature'
-        }, {
-            key: 'Content-Transfer-Encoding',
-            value: '7bit'
-        }]);
-
         cleartext = contentNode.build();
-        openpgp.signClearMessage([self._privateKey], cleartext, onSigned);
+        openpgp.signClearMessage([this._privateKey], cleartext, onSigned);
 
         function onSigned(err, signedCleartext) {
             if (err) {
-                localCallback(err);
+                callback(err);
                 return;
             }
 
-            signatureHeader = "-----BEGIN PGP SIGNATURE-----";
-            signatureNode.content = signatureHeader + signedCleartext.split(signatureHeader).pop();
+            var signatureHeader = '-----BEGIN PGP SIGNATURE-----';
+            signatureNode = rootNode.createChild('application/pgp-signature');
+            signatureNode.setContent(signatureHeader + signedCleartext.split(signatureHeader).pop());
 
-            localCallback();
+            callback();
         }
     };
 
-    PgpBuilder.prototype._createPgpMimeTree = function(cleartextMessage, ciphertext, builder) {
-        var multipartParentNode, encryptedNode;
+    PgpBuilder.prototype._createEncryptedMimeTree = function(plaintext, ciphertext, rootNode) {
+        var ptNode, pgpNode, versionNode, ctNode;
 
-        // do we need to frame the encrypted message with a clear text?
-        if (cleartextMessage) {
-            // create a multipart/mixed message
-            multipartParentNode = builder.createNode([{
-                key: 'Content-Type',
-                value: 'multipart/mixed',
-            }]);
-
-            multipartParentNode.createNode([{
-                key: 'Content-Type',
-                value: 'text/plain',
-                parameters: {
-                    charset: 'utf-8'
-                }
-            }, {
-                key: 'Content-Transfer-Encoding',
-                value: 'quoted-printable'
-            }]).content = cleartextMessage;
-        }
-
-        // create a pgp/mime message
+        // creates an encrypted pgp/mime message
         // either pin the encrypted mime-subtree under the multipart/mixed node, OR 
         // create a top-level multipart/encrypted node
-        encryptedNode = (multipartParentNode || builder).createNode([{
-            key: 'Content-Type',
-            value: 'multipart/encrypted',
-            parameters: {
-                protocol: 'application/pgp-encrypted'
-            }
-        }, {
-            key: 'Content-Transfer-Encoding',
-            value: '7bit'
-        }, {
-            key: 'Content-Description',
-            value: 'OpenPGP encrypted message'
-        }]);
-        encryptedNode.content = 'This is an OpenPGP/MIME encrypted message.';
+
+        // do we need to frame the encrypted message with a clear text?
+        if (plaintext) {
+            rootNode.setHeader('content-type', 'multipart/mixed');
+
+            ptNode = rootNode.createChild('text/plain');
+            ptNode.setContent(plaintext);
+
+            // if we have a plain text node, we need a dedicated node that holds the pgp
+            pgpNode = rootNode.createChild('multipart/encrypted');
+        } else {
+            // otherwise the node that holds the pgp is the root node
+            rootNode.setHeader('multipart/encrypted');
+            pgpNode = rootNode;
+        }
+
+        pgpNode.setHeader('content-description', 'OpenPGP encrypted message');
+        pgpNode.setContent('This is an OpenPGP/MIME encrypted message.');
 
         // set the version info
-        encryptedNode.createNode([{
-            key: 'Content-Type',
-            value: 'application/pgp-encrypted'
-        }, {
-            key: 'Content-Transfer-Encoding',
-            value: '7bit'
-        }, {
-            key: 'Content-Description',
-            value: 'PGP/MIME Versions Identification'
-        }]).content = 'Version: 1';
+        versionNode = pgpNode.createChild('application/pgp-encrypted');
+        versionNode.setHeader('content-description', 'PGP/MIME Versions Identification');
+        versionNode.setContent('Version: 1');
 
         // set the ciphertext
-        encryptedNode.createNode([{
-            key: 'Content-Type',
-            value: 'application/octet-stream'
-        }, {
-            key: 'Content-Transfer-Encoding',
-            value: '7bit'
-        }, {
-            key: 'Content-Description',
-            value: 'OpenPGP encrypted message'
-        }, {
-            key: 'Content-Disposition',
-            value: 'inline',
-            parameters: {
-                filename: 'encrypted.asc'
-            }
-        }]).content = ciphertext;
+        ctNode = pgpNode.createChild('application/octet-stream');
+        ctNode.setHeader('content-description', 'OpenPGP encrypted message');
+        ctNode.setHeader('content-disposition', 'inline');
+        ctNode.filename = 'encrypted.asc';
+        ctNode.setContent(ciphertext);
     };
 
     return PgpBuilder;

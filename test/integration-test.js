@@ -106,7 +106,7 @@ define(function(require) {
                 cleartextMessage = 'yes! this is very secure!';
                 publicKeysArmored = [pubkeyArmored];
 
-                var size = 10000;
+                var size = 1000;
                 if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
                     var arr = new Uint8Array(size);
                     window.crypto.getRandomValues(arr);
@@ -114,7 +114,7 @@ define(function(require) {
                 } else {
                     // node.js
                     var randomBinStr = require('crypto').randomBytes(size).toString('binary');
-                    expectedAttachmentPayload = utf8ToUInt8Array(randomBinStr);
+                    expectedAttachmentPayload = s2a(randomBinStr);
                 }
 
                 var body = 'hello, world!';
@@ -156,7 +156,7 @@ define(function(require) {
                         expect(parsedMail).to.exist;
                         expect(parsedMail.text.replace(/\n/g, '')).to.equal(body);
                         var attachmentBinStr = parsedMail.attachments[0].content.toString('binary');
-                        var attachmentPayload = utf8ToUInt8Array(attachmentBinStr);
+                        var attachmentPayload = s2a(attachmentBinStr);
                         expect(attachmentPayload.length).to.equal(expectedAttachmentPayload.length);
                         expect(attachmentPayload).to.deep.equal(expectedAttachmentPayload);
 
@@ -182,11 +182,11 @@ define(function(require) {
     // Helper Functions
     //
 
-    function utf8ToUInt8Array(str) {
-        var bufView = new Uint8Array(new ArrayBuffer(str.length));
-        for (var i = 0, strLen = str.length; i < strLen; i++) {
-            bufView[i] = str.charCodeAt(i);
+    function s2a(str) {
+        var view = new Uint8Array(str.length);
+        for (var i = 0, j = str.length; i < j; i++) {
+            view[i] = str.charCodeAt(i);
         }
-        return bufView;
+        return view;
     }
 });

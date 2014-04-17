@@ -15,18 +15,17 @@
     "url": "http://github.com/whiteout-io/pgpbuilder/blob/master/LICENSE"
   }],
   "engines": {
-    "node": ">=0.8"
+    "node": ">=0.10"
   },
   "main": "./src/pgpbuilder.js",
   "scripts": {
     "test": "grunt"
   },
   "dependencies": {
-    "mailbuilder": "https://github.com/whiteout-io/mailbuilder/tarball/v0.1.0",
-    "openpgp": "~0.4.0"
+    "mailbuild": "https://github.com/whiteout-io/mailbuild/tarball/v0.2.1",
+    "openpgp": "~0.5.1"
   },
   "devDependencies": {
-    "mailparser": "https://github.com/whiteout-io/mailparser/tarball/amd",
     "chai": "~1.8.1",
     "grunt": "0.4.1",
     "grunt-contrib-connect": "~0.6.0",
@@ -37,7 +36,8 @@
     "phantomjs": "~1.9.7-1",
     "requirejs": "~2.1.10",
     "sinon": "~1.7.3",
-    "sinon-chai": "~2.5.0"
+    "sinon-chai": "~2.5.0",
+    "mailparser": "^0.4.2"
   },
   "keywords": [
     "e-mail",
