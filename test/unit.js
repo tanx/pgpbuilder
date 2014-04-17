@@ -9,7 +9,7 @@ require.config({
         'mimefuncs': '../node_modules/mailbuild/node_modules/mimefuncs/src/mimefuncs',
         'mimetypes': '../node_modules/mailbuild/node_modules/mimetypes/src/mimetypes',
         'punycode': '../node_modules/mailbuild/node_modules/punycode/punycode',
-        'stringencoding': '../node_modules/stringencoding/dist/stringencoding',
+        'stringencoding': '../node_modules/mailbuild/node_modules/mimefuncs/node_modules/stringencoding/dist/stringencoding',
         'openpgp': 'lib/openpgp.min',
         'crypto': 'lib/dummy' // this is due to the fact how requirejs parses modules (there is a require(crypto) in the function)
     },
