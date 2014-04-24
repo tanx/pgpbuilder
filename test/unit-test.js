@@ -155,7 +155,9 @@ define(function(require) {
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature')).to.be.true;
                     expect(textNode.setContent.calledWith(body)).to.be.true;
-                    expect(attmtNode.setContent.calledWith(attmt.buffer)).to.be.true;
+                    expect(textNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
+                    expect(attmtNode.setContent.calledWith(attmt)).to.be.true;
+                    expect(attmtNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
 
                     expect(rootNode.setHeader.calledWith({
                         subject: mail.subject,
@@ -235,7 +237,9 @@ define(function(require) {
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature')).to.be.true;
                     expect(textNode.setContent.calledWith(body)).to.be.true;
-                    expect(attmtNode.setContent.calledWith(attmt.buffer)).to.be.true;
+                    expect(textNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
+                    expect(attmtNode.setContent.calledWith(attmt)).to.be.true;
+                    expect(attmtNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
 
                     expect(signClearStub.calledOnce).to.be.true;
                     expect(readArmoredStub.calledOnce).to.be.true;
@@ -325,6 +329,6 @@ define(function(require) {
         for (var i = 0, j = str.length; i < j; i++) {
             view[i] = str.charCodeAt(i);
         }
-        return view.buffer;
+        return view;
     }
 });

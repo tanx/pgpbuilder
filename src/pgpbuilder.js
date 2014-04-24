@@ -200,6 +200,7 @@ define(function(require) {
         // this a plain text mail? then only one text/plain node is needed
         if (!mail.attachments || mail.attachments.length === 0) {
             contentNode = rootNode.createChild('text/plain');
+            contentNode.setHeader('content-transfer-encoding', 'base64');
             contentNode.setContent(mail.body);
         } else {
             // we have attachments, so let's create a multipart/mixed mail
@@ -207,13 +208,15 @@ define(function(require) {
 
             // create the text/plain node
             textNode = contentNode.createChild('text/plain');
+            textNode.setHeader('content-transfer-encoding', 'base64');
             textNode.setContent(mail.body);
 
             // add the attachments
             mail.attachments.forEach(function(attmtObj) {
                 attmtNode = contentNode.createChild('application/octet-stream');
+                attmtNode.setHeader('content-transfer-encoding', 'base64');
                 attmtNode.filename = attmtObj.filename;
-                attmtNode.setContent(attmtObj.content.buffer);
+                attmtNode.setContent(attmtObj.content);
             });
         }
 
