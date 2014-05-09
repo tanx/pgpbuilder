@@ -159,6 +159,12 @@ define(function(require) {
                     expect(attmtNode.setContent.calledWith(attmt)).to.be.true;
                     expect(attmtNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
 
+                    expect(mail.bodyParts[0].type).to.equal('signed');
+                    expect(mail.bodyParts[0].content[0].type).to.equal('text');
+                    expect(mail.bodyParts[0].content[0].content).to.equal(body);
+                    expect(mail.bodyParts[0].content[1].type).to.equal('attachment');
+                    expect(mail.bodyParts[0].content[1].content).to.equal(attmt);
+
                     expect(rootNode.setHeader.calledWith({
                         subject: mail.subject,
                         from: mail.from,
@@ -234,6 +240,9 @@ define(function(require) {
                     expect(mail.body).to.equal(ct);
                     expect(mail.attachments).to.be.empty;
                     expect(mail.encrypted).to.be.true;
+                    expect(mail.bodyParts.length).to.equal(1);
+                    expect(mail.bodyParts[0].type).to.equal('encrypted');
+                    expect(mail.bodyParts[0].content).to.equal(ct);
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature')).to.be.true;
                     expect(textNode.setContent.calledWith(body)).to.be.true;
@@ -276,7 +285,10 @@ define(function(require) {
                     cc: [{ address: 'd@d.io' }],
                     bcc: [{ address: 'e@e.io' }],
                     subject: 'foobar',
-                    body: ct,
+                    bodyParts: [{
+                        type: 'encrypted',
+                        content: ct
+                    }],
                     encrypted: true
                 };
 
