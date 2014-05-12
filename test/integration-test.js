@@ -143,7 +143,7 @@ define(function(require) {
                     expect(err).to.not.exist;
                     expect(mail).to.exist;
 
-                    var pgpMessageObj = openpgp.message.readArmored(mail.body);
+                    var pgpMessageObj = openpgp.message.readArmored(mail.bodyParts[0].content);
                     var publicKeyObj = openpgp.key.readArmored(pubkeyArmored).keys[0];
 
                     var decrypted = openpgp.decryptAndVerifyMessage(pgpbuilder._privateKey, [publicKeyObj], pgpMessageObj);

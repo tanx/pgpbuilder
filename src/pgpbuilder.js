@@ -105,6 +105,10 @@ define(function(require) {
             options.mail.encrypted = true;
             options.mail.body = ciphertext;
             options.mail.attachments.length = 0;
+            options.mail.bodyParts = [{
+                type: 'encrypted',
+                content: ciphertext
+            }];
 
             callback(null, options.mail);
         }
@@ -130,7 +134,7 @@ define(function(require) {
         var rootNode = options.rootNode || new Mailbuild();
 
         // create the PGP/MIME tree
-        this._createEncryptedMimeTree(options.cleartextMessage, options.mail.body, rootNode);
+        this._createEncryptedMimeTree(options.cleartextMessage, options.mail.bodyParts[0].content, rootNode);
 
         // configure the envelope
         this._setEnvelope(options.mail, rootNode);
@@ -189,11 +193,17 @@ define(function(require) {
     };
 
     PgpBuilder.prototype._createSignedMimeTree = function(mail, rootNode, callback) {
-        var contentNode, textNode, attmtNode, signatureNode, cleartext;
+        var contentNode, textNode, cleartext;
 
         // 
         // create the mime tree
-        // 
+        //
+
+        mail.bodyParts = [{
+            type: 'signed',
+            content: []
+        }];
+        var signedBodyPartRoot = mail.bodyParts[0].content;
 
         rootNode.setHeader('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature');
 
@@ -202,6 +212,10 @@ define(function(require) {
             contentNode = rootNode.createChild('text/plain');
             contentNode.setHeader('content-transfer-encoding', 'base64');
             contentNode.setContent(mail.body);
+            signedBodyPartRoot.push({
+                type: 'text',
+                content: mail.body
+            });
         } else {
             // we have attachments, so let's create a multipart/mixed mail
             contentNode = rootNode.createChild('multipart/mixed');
@@ -210,13 +224,24 @@ define(function(require) {
             textNode = contentNode.createChild('text/plain');
             textNode.setHeader('content-transfer-encoding', 'base64');
             textNode.setContent(mail.body);
+            signedBodyPartRoot.push({
+                type: 'text',
+                content: mail.body
+            });
 
             // add the attachments
             mail.attachments.forEach(function(attmtObj) {
-                attmtNode = contentNode.createChild('application/octet-stream');
+                var mimeType = 'application/octet-stream';
+                var attmtNode = contentNode.createChild(mimeType);
                 attmtNode.setHeader('content-transfer-encoding', 'base64');
                 attmtNode.filename = attmtObj.filename;
                 attmtNode.setContent(attmtObj.content);
+                signedBodyPartRoot.push({
+                    type: 'attachment',
+                    mimeType: mimeType,
+                    filename: attmtObj.filename,
+                    content: attmtObj.content
+                });
             });
         }
 
@@ -234,8 +259,12 @@ define(function(require) {
             }
 
             var signatureHeader = '-----BEGIN PGP SIGNATURE-----';
-            signatureNode = rootNode.createChild('application/pgp-signature');
-            signatureNode.setContent(signatureHeader + signedCleartext.split(signatureHeader).pop());
+            var signature = signatureHeader + signedCleartext.split(signatureHeader).pop();
+            var signatureNode = rootNode.createChild('application/pgp-signature');
+            signatureNode.setContent(signature);
+
+            signedBodyPartRoot.message = cleartext;
+            signedBodyPartRoot.signature = signature;
 
             callback();
         }
