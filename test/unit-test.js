@@ -132,7 +132,7 @@ define(function(require) {
                     }]
                 };
 
-                
+
                 rootNode.createChild.withArgs('multipart/mixed').returns(contentNode);
                 contentNode.createChild.withArgs('text/plain').returns(textNode);
                 contentNode.createChild.withArgs('application/octet-stream').returns(attmtNode);
@@ -285,6 +285,9 @@ define(function(require) {
                     cc: [{ address: 'd@d.io' }],
                     bcc: [{ address: 'e@e.io' }],
                     subject: 'foobar',
+                    headers: {
+                        'in-reply-to': 'zzz'
+                    },
                     bodyParts: [{
                         type: 'encrypted',
                         content: ct
@@ -293,7 +296,7 @@ define(function(require) {
                 };
 
                 rootNode.createChild.withArgs('text/plain').returns(textNode);
-                rootNode.createChild.withArgs('multipart/encrypted').returns(pgpNode);
+                rootNode.createChild.withArgs('multipart/encrypted; protocol=application/pgp-encrypted').returns(pgpNode);
                 pgpNode.createChild.withArgs('application/pgp-encrypted').returns(versionNode);
                 pgpNode.createChild.withArgs('application/octet-stream').returns(ctNode);
 
@@ -324,6 +327,10 @@ define(function(require) {
                         to: mail.to,
                         cc: mail.cc,
                         bcc: mail.bcc
+                    })).to.be.true;
+
+                    expect(rootNode.setHeader.calledWith({
+                        'in-reply-to': mail.headers['in-reply-to']
                     })).to.be.true;
 
                     done();
