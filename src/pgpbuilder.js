@@ -100,7 +100,7 @@ define(function(require) {
                 return;
             }
 
-            // replace the mail body with the ciphertext and empty the attachment 
+            // replace the mail body with the ciphertext and empty the attachment
             // (attachment is now within the ciphertext!)
             options.mail.encrypted = true;
             options.mail.body = ciphertext;
@@ -122,6 +122,7 @@ define(function(require) {
      * @param {Array} options.mail.cc (optional) Array of ASCII strings representing the recipient, see mail.to
      * @param {Array} options.mail.bcc (optional) Array of ASCII strings representing the recipient, see mail.to
      * @param {String} options.mail.subject String containing with the mail's subject
+     * @param {String} options.mail.headers Object custom headers to add to the message header
      * @param {Object} options.cleartextMessage (optional) A clear text message in addition to the encrypted message
      * @param {Function} callback(error, rfcMessage, smtpInfo) Invoked when the mail has been built and the smtp information has been created, or gives information in case an error occurred.
      */
@@ -179,9 +180,9 @@ define(function(require) {
         }
     };
 
-    // 
+    //
     // create the envelope data
-    // 
+    //
     PgpBuilder.prototype._setEnvelope = function(mail, rootNode) {
         rootNode.setHeader({
             subject: mail.subject,
@@ -190,12 +191,17 @@ define(function(require) {
             cc: mail.cc,
             bcc: mail.bcc
         });
+
+        // set custom headers
+        if (mail.headers) {
+            rootNode.setHeader(mail.headers);
+        }
     };
 
     PgpBuilder.prototype._createSignedMimeTree = function(mail, rootNode, callback) {
         var contentNode, textNode, cleartext;
 
-        // 
+        //
         // create the mime tree
         //
 
@@ -274,7 +280,7 @@ define(function(require) {
         var ptNode, pgpNode, versionNode, ctNode;
 
         // creates an encrypted pgp/mime message
-        // either pin the encrypted mime-subtree under the multipart/mixed node, OR 
+        // either pin the encrypted mime-subtree under the multipart/mixed node, OR
         // create a top-level multipart/encrypted node
 
         // do we need to frame the encrypted message with a clear text?
@@ -285,10 +291,10 @@ define(function(require) {
             ptNode.setContent(plaintext);
 
             // if we have a plain text node, we need a dedicated node that holds the pgp
-            pgpNode = rootNode.createChild('multipart/encrypted');
+            pgpNode = rootNode.createChild('multipart/encrypted; protocol=application/pgp-encrypted');
         } else {
             // otherwise the node that holds the pgp is the root node
-            rootNode.setHeader('multipart/encrypted');
+            rootNode.setHeader('multipart/encrypted; protocol=application/pgp-encrypted');
             pgpNode = rootNode;
         }
 
