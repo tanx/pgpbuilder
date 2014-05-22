@@ -155,7 +155,6 @@ define(function(require) {
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature')).to.be.true;
                     expect(textNode.setContent.calledWith(body)).to.be.true;
-                    expect(textNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
                     expect(attmtNode.setContent.calledWith(attmt)).to.be.true;
                     expect(attmtNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
 
@@ -246,7 +245,6 @@ define(function(require) {
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature')).to.be.true;
                     expect(textNode.setContent.calledWith(body)).to.be.true;
-                    expect(textNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
                     expect(attmtNode.setContent.calledWith(attmt)).to.be.true;
                     expect(attmtNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
 
