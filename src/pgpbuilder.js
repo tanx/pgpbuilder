@@ -292,7 +292,7 @@ define(function(require) {
             pgpNode = rootNode.createChild('multipart/encrypted; protocol=application/pgp-encrypted');
         } else {
             // otherwise the node that holds the pgp is the root node
-            rootNode.setHeader('multipart/encrypted; protocol=application/pgp-encrypted');
+            rootNode.setHeader('content-type', 'multipart/encrypted; protocol=application/pgp-encrypted');
             pgpNode = rootNode;
         }
 
