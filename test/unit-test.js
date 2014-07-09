@@ -154,6 +154,7 @@ define(function(require) {
                     expect(envelope).to.equal(envelope);
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature')).to.be.true;
+                    expect(textNode.setHeader.calledWith('content-transfer-encoding', 'quoted-printable')).to.be.true;
                     expect(textNode.setContent.calledWith(body)).to.be.true;
                     expect(attmtNode.setContent.calledWith(attmt)).to.be.true;
                     expect(attmtNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
@@ -244,6 +245,7 @@ define(function(require) {
                     expect(mail.bodyParts[0].content).to.equal(ct);
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature')).to.be.true;
+                    expect(textNode.setHeader.calledWith('content-transfer-encoding', 'quoted-printable')).to.be.true;
                     expect(textNode.setContent.calledWith(body)).to.be.true;
                     expect(attmtNode.setContent.calledWith(attmt)).to.be.true;
                     expect(attmtNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
@@ -311,6 +313,7 @@ define(function(require) {
                     expect(envelope).to.equal(envelope);
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/mixed')).to.be.true;
+                    expect(textNode.setHeader.calledWith('content-transfer-encoding', 'quoted-printable')).to.be.true;
                     expect(textNode.setContent.calledWith(ptMsg)).to.be.true;
                     expect(pgpNode.setContent.calledWith('This is an OpenPGP/MIME encrypted message.')).to.be.true;
                     expect(versionNode.setHeader.calledWith('content-description', 'PGP/MIME Versions Identification')).to.be.true;
