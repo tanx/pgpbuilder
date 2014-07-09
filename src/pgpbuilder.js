@@ -216,6 +216,7 @@ define(function(require) {
         // this a plain text mail? then only one text/plain node is needed
         if (!mail.attachments || mail.attachments.length === 0) {
             contentNode = rootNode.createChild('text/plain');
+            contentNode.setHeader('content-transfer-encoding', 'quoted-printable');
             contentNode.setContent(mail.body);
             signedBodyPartRoot.push({
                 type: 'text',
@@ -227,6 +228,7 @@ define(function(require) {
 
             // create the text/plain node
             textNode = contentNode.createChild('text/plain');
+            textNode.setHeader('content-transfer-encoding', 'quoted-printable');
             textNode.setContent(mail.body);
             signedBodyPartRoot.push({
                 type: 'text',
@@ -286,6 +288,7 @@ define(function(require) {
             rootNode.setHeader('content-type', 'multipart/mixed');
 
             ptNode = rootNode.createChild('text/plain');
+            ptNode.setHeader('content-transfer-encoding', 'quoted-printable');
             ptNode.setContent(plaintext);
 
             // if we have a plain text node, we need a dedicated node that holds the pgp
