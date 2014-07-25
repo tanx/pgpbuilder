@@ -9,7 +9,7 @@
     "type": "git",
     "url": "http://github.com/whiteout-io/pgpbuilder.git"
   },
-  "version": "0.3.5",
+  "version": "0.3.6",
   "licenses": [{
     "type": "MIT",
     "url": "http://github.com/whiteout-io/pgpbuilder/blob/master/LICENSE"
@@ -22,7 +22,7 @@
     "test": "grunt"
   },
   "dependencies": {
-    "mailbuild": "https://github.com/whiteout-io/mailbuild/tarball/v0.3.3",
+    "mailbuild": "~0.3.4",
     "openpgp": "~0.7.1"
   },
   "devDependencies": {
