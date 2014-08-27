@@ -123,7 +123,6 @@ define(function(require) {
      * @param {Array} options.mail.bcc (optional) Array of ASCII strings representing the recipient, see mail.to
      * @param {String} options.mail.subject String containing with the mail's subject
      * @param {String} options.mail.headers Object custom headers to add to the message header
-     * @param {Object} options.cleartextMessage (optional) A clear text message in addition to the encrypted message
      * @param {Function} callback(error, rfcMessage, smtpInfo) Invoked when the mail has been built and the smtp information has been created, or gives information in case an error occurred.
      */
     PgpBuilder.prototype.buildEncrypted = function(options, callback) {
@@ -135,7 +134,7 @@ define(function(require) {
         var rootNode = options.rootNode || new Mailbuild();
 
         // create the PGP/MIME tree
-        this._createEncryptedMimeTree(options.cleartextMessage, options.mail.bodyParts[0].content, rootNode);
+        this._createEncryptedMimeTree(options.mail.bodyParts[0].content, rootNode);
 
         // configure the envelope
         this._setEnvelope(options.mail, rootNode);
@@ -276,39 +275,19 @@ define(function(require) {
         }
     };
 
-    PgpBuilder.prototype._createEncryptedMimeTree = function(plaintext, ciphertext, rootNode) {
-        var ptNode, pgpNode, versionNode, ctNode;
-
-        // creates an encrypted pgp/mime message
-        // either pin the encrypted mime-subtree under the multipart/mixed node, OR
-        // create a top-level multipart/encrypted node
-
-        // do we need to frame the encrypted message with a clear text?
-        if (plaintext) {
-            rootNode.setHeader('content-type', 'multipart/mixed');
-
-            ptNode = rootNode.createChild('text/plain');
-            ptNode.setHeader('content-transfer-encoding', 'quoted-printable');
-            ptNode.setContent(plaintext);
-
-            // if we have a plain text node, we need a dedicated node that holds the pgp
-            pgpNode = rootNode.createChild('multipart/encrypted; protocol=application/pgp-encrypted');
-        } else {
-            // otherwise the node that holds the pgp is the root node
-            rootNode.setHeader('content-type', 'multipart/encrypted; protocol=application/pgp-encrypted');
-            pgpNode = rootNode;
-        }
-
-        pgpNode.setHeader('content-description', 'OpenPGP encrypted message');
-        pgpNode.setContent('This is an OpenPGP/MIME encrypted message.');
+    PgpBuilder.prototype._createEncryptedMimeTree = function(ciphertext, rootNode) {
+        // creates an encrypted pgp/mime message with a top-level multipart/encrypted node
+        rootNode.setHeader('content-type', 'multipart/encrypted; protocol=application/pgp-encrypted');
+        rootNode.setHeader('content-description', 'OpenPGP encrypted message');
+        rootNode.setContent('This is an OpenPGP/MIME encrypted message.');
 
         // set the version info
-        versionNode = pgpNode.createChild('application/pgp-encrypted');
+        var versionNode = rootNode.createChild('application/pgp-encrypted');
         versionNode.setHeader('content-description', 'PGP/MIME Versions Identification');
         versionNode.setContent('Version: 1');
 
         // set the ciphertext
-        ctNode = pgpNode.createChild('application/octet-stream');
+        var ctNode = rootNode.createChild('application/octet-stream');
         ctNode.setHeader('content-description', 'OpenPGP encrypted message');
         ctNode.setHeader('content-disposition', 'inline');
         ctNode.filename = 'encrypted.asc';

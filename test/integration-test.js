@@ -97,13 +97,12 @@ define(function(require) {
             it('should send a message with attachments and decode the output correctly', function(done) {
                 this.timeout(10000);
 
-                var cb, mail, publicKeysArmored, expectedAttachmentPayload, cleartextMessage;
+                var cb, mail, publicKeysArmored, expectedAttachmentPayload;
 
                 //
                 // Setup Fixture
                 //
 
-                cleartextMessage = 'yes! this is very secure!';
                 publicKeysArmored = [pubkeyArmored];
 
                 var size = 1000;
