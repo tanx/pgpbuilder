@@ -158,6 +158,7 @@ define(function(require) {
                     expect(textNode.setContent.calledWith(body)).to.be.true;
                     expect(attmtNode.setContent.calledWith(attmt)).to.be.true;
                     expect(attmtNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
+                    expect(signatureNode.setHeader.calledWith('content-transfer-encoding', '7bit')).to.be.true;
 
                     expect(mail.bodyParts[0].type).to.equal('signed');
                     expect(mail.bodyParts[0].content[0].type).to.equal('text');
@@ -249,6 +250,7 @@ define(function(require) {
                     expect(textNode.setContent.calledWith(body)).to.be.true;
                     expect(attmtNode.setContent.calledWith(attmt)).to.be.true;
                     expect(attmtNode.setHeader.calledWith('content-transfer-encoding', 'base64')).to.be.true;
+                    expect(signatureNode.setHeader.calledWith('content-transfer-encoding', '7bit')).to.be.true;
 
                     expect(signClearStub.calledOnce).to.be.true;
                     expect(readArmoredStub.calledOnce).to.be.true;
@@ -307,11 +309,14 @@ define(function(require) {
                     expect(envelope).to.equal(envelope);
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/encrypted; protocol=application/pgp-encrypted')).to.be.true;
+                    expect(rootNode.setHeader.calledWith('content-transfer-encoding', '7bit')).to.be.true;
                     expect(rootNode.setContent.calledWith('This is an OpenPGP/MIME encrypted message.')).to.be.true;
                     expect(versionNode.setHeader.calledWith('content-description', 'PGP/MIME Versions Identification')).to.be.true;
                     expect(versionNode.setContent.calledWith('Version: 1')).to.be.true;
+                    expect(versionNode.setHeader.calledWith('content-transfer-encoding', '7bit')).to.be.true;
                     expect(ctNode.setHeader.calledWith('content-description', 'OpenPGP encrypted message')).to.be.true;
                     expect(ctNode.setHeader.calledWith('content-disposition', 'inline')).to.be.true;
+                    expect(ctNode.setHeader.calledWith('content-transfer-encoding', '7bit')).to.be.true;
                     expect(ctNode.setContent.calledWith(ct)).to.be.true;
 
                     expect(rootNode.setHeader.calledWith({

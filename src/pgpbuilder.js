@@ -266,6 +266,7 @@ define(function(require) {
             var signatureHeader = '-----BEGIN PGP SIGNATURE-----';
             var signature = signatureHeader + signedCleartext.split(signatureHeader).pop();
             var signatureNode = rootNode.createChild('application/pgp-signature');
+            signatureNode.setHeader('content-transfer-encoding', '7bit');
             signatureNode.setContent(signature);
 
             signedBodyPartRoot.message = cleartext;
@@ -279,17 +280,20 @@ define(function(require) {
         // creates an encrypted pgp/mime message with a top-level multipart/encrypted node
         rootNode.setHeader('content-type', 'multipart/encrypted; protocol=application/pgp-encrypted');
         rootNode.setHeader('content-description', 'OpenPGP encrypted message');
+        rootNode.setHeader('content-transfer-encoding', '7bit');
         rootNode.setContent('This is an OpenPGP/MIME encrypted message.');
 
         // set the version info
         var versionNode = rootNode.createChild('application/pgp-encrypted');
         versionNode.setHeader('content-description', 'PGP/MIME Versions Identification');
+        versionNode.setHeader('content-transfer-encoding', '7bit');
         versionNode.setContent('Version: 1');
 
         // set the ciphertext
         var ctNode = rootNode.createChild('application/octet-stream');
         ctNode.setHeader('content-description', 'OpenPGP encrypted message');
         ctNode.setHeader('content-disposition', 'inline');
+        ctNode.setHeader('content-transfer-encoding', '7bit');
         ctNode.filename = 'encrypted.asc';
         ctNode.setContent(ciphertext);
     };
