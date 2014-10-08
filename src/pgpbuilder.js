@@ -6,7 +6,7 @@ if (typeof exports === 'object' && typeof define !== 'function') {
 }
 
 define(function(require) {
-    var openpgp = require('openpgp'),
+    var openpgp = typeof window !== 'undefined' && window.openpgp ? window.openpgp : require('openpgp'),
         Mailbuild = require('mailbuild'),
         PgpBuilder;
 
