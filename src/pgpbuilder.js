@@ -20,7 +20,7 @@ define(function(require) {
 
         // set pgp worker path for in browser use
         if (typeof window !== 'undefined' && window.Worker && options.pgpWorkerPath) {
-            openpgp.initWorker(options.pgpWorkerPath);
+            this._pgp.initWorker(options.pgpWorkerPath);
         }
     };
 
@@ -35,7 +35,7 @@ define(function(require) {
 
         // decrypt the private key (for signing)
         try {
-            privateKey = openpgp.key.readArmored(options.privateKeyArmored).keys[0];
+            privateKey = this._pgp.key.readArmored(options.privateKeyArmored).keys[0];
             if (!privateKey.decrypt(options.passphrase)) {
                 callback(new Error('Wrong passphrase! Could not decrypt the private key!'));
                 return;
@@ -83,7 +83,7 @@ define(function(require) {
             // parse the ASCII-armored public keys to encrypt the signed mime tree
             try {
                 options.publicKeysArmored.forEach(function(key) {
-                    publicKeys.push(openpgp.key.readArmored(key).keys[0]);
+                    publicKeys.push(self._pgp.key.readArmored(key).keys[0]);
                 });
             } catch (err) {
                 callback(err);
@@ -91,15 +91,10 @@ define(function(require) {
             }
 
             // encrypt the signed mime tree
-            openpgp.signAndEncryptMessage(publicKeys, self._privateKey, plaintext, onEncrypted);
+            self._pgp.signAndEncryptMessage(publicKeys, self._privateKey, plaintext).then(onEncrypted).catch(callback);
         }
 
-        function onEncrypted(err, ciphertext) {
-            if (err) {
-                callback(err);
-                return;
-            }
-
+        function onEncrypted(ciphertext) {
             // replace the mail body with the ciphertext and empty the attachment
             // (attachment is now within the ciphertext!)
             options.mail.encrypted = true;
@@ -255,14 +250,9 @@ define(function(require) {
         //
 
         cleartext = contentNode.build();
-        openpgp.signClearMessage([this._privateKey], cleartext, onSigned);
+        this._pgp.signClearMessage([this._privateKey], cleartext).then(onSigned).catch(callback);
 
-        function onSigned(err, signedCleartext) {
-            if (err) {
-                callback(err);
-                return;
-            }
-
+        function onSigned(signedCleartext) {
             var signatureHeader = '-----BEGIN PGP SIGNATURE-----';
             var signature = signatureHeader + signedCleartext.split(signatureHeader).pop();
             var signatureNode = rootNode.createChild('application/pgp-signature');
