@@ -145,23 +145,24 @@ define(function(require) {
                     var pgpMessageObj = openpgp.message.readArmored(mail.bodyParts[0].content);
                     var publicKeyObj = openpgp.key.readArmored(pubkeyArmored).keys[0];
 
-                    var decrypted = openpgp.decryptAndVerifyMessage(pgpbuilder._privateKey, [publicKeyObj], pgpMessageObj);
-                    expect(decrypted).to.exist;
-                    expect(decrypted.signatures[0].valid).to.be.true;
-                    expect(decrypted.text).to.exist;
+                    openpgp.decryptAndVerifyMessage(pgpbuilder._privateKey, [publicKeyObj], pgpMessageObj).then(function(decrypted) {
+                        expect(decrypted).to.exist;
+                        expect(decrypted.signatures[0].valid).to.be.true;
+                        expect(decrypted.text).to.exist;
 
-                    var parser = new MailParser();
-                    parser.on('end', function(parsedMail) {
-                        expect(parsedMail).to.exist;
-                        expect(parsedMail.text.replace(/\n/g, '')).to.equal(body);
-                        var attachmentBinStr = parsedMail.attachments[0].content.toString('binary');
-                        var attachmentPayload = s2a(attachmentBinStr);
-                        expect(attachmentPayload.length).to.equal(expectedAttachmentPayload.length);
-                        expect(attachmentPayload).to.deep.equal(expectedAttachmentPayload);
+                        var parser = new MailParser();
+                        parser.on('end', function(parsedMail) {
+                            expect(parsedMail).to.exist;
+                            expect(parsedMail.text.replace(/\n/g, '')).to.equal(body);
+                            var attachmentBinStr = parsedMail.attachments[0].content.toString('binary');
+                            var attachmentPayload = s2a(attachmentBinStr);
+                            expect(attachmentPayload.length).to.equal(expectedAttachmentPayload.length);
+                            expect(attachmentPayload).to.deep.equal(expectedAttachmentPayload);
 
-                        done();
+                            done();
+                        });
+                        parser.end(decrypted.text);
                     });
-                    parser.end(decrypted.text);
                 };
 
                 //

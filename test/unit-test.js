@@ -119,10 +119,20 @@ define(function(require) {
                 envelope = {};
 
                 mail = {
-                    from: [{ address: 'a@a.io' }],
-                    to: [{ address: 'b@b.io' }, { address: 'c@c.io' }],
-                    cc: [{ address: 'd@d.io' }],
-                    bcc: [{ address: 'e@e.io' }],
+                    from: [{
+                        address: 'a@a.io'
+                    }],
+                    to: [{
+                        address: 'b@b.io'
+                    }, {
+                        address: 'c@c.io'
+                    }],
+                    cc: [{
+                        address: 'd@d.io'
+                    }],
+                    bcc: [{
+                        address: 'e@e.io'
+                    }],
                     subject: 'foobar',
                     body: body,
                     attachments: [{
@@ -140,7 +150,9 @@ define(function(require) {
 
                 contentNode.build.returns(rfc);
                 signClearStub = sinon.stub(openpgp, 'signClearMessage');
-                signClearStub.withArgs([pgpbuilder._privateKey], rfc).yields(null, sign);
+                signClearStub.withArgs([pgpbuilder._privateKey], rfc).returns(new Promise(function(resolve) {
+                    resolve(sign);
+                }));
 
                 rootNode.build.returns(compiledMail);
                 rootNode.getEnvelope.returns(envelope);
@@ -204,10 +216,20 @@ define(function(require) {
                 ct = 'serious pgp.';
 
                 mail = {
-                    from: [{ address: 'a@a.io' }],
-                    to: [{ address: 'b@b.io' }, { address: 'c@c.io' }],
-                    cc: [{ address: 'd@d.io' }],
-                    bcc: [{ address: 'e@e.io' }],
+                    from: [{
+                        address: 'a@a.io'
+                    }],
+                    to: [{
+                        address: 'b@b.io'
+                    }, {
+                        address: 'c@c.io'
+                    }],
+                    cc: [{
+                        address: 'd@d.io'
+                    }],
+                    bcc: [{
+                        address: 'e@e.io'
+                    }],
                     subject: 'foobar',
                     body: body,
                     attachments: [{
@@ -223,12 +245,18 @@ define(function(require) {
                 rootNode.createChild.withArgs('application/pgp-signature').returns(signatureNode);
 
                 contentNode.build.returns(rfc);
-                signClearStub.withArgs([pgpbuilder._privateKey], rfc).yields(null, sign);
+                signClearStub.withArgs([pgpbuilder._privateKey], rfc).returns(new Promise(function(resolve) {
+                    resolve(sign);
+                }));
 
                 rootNode.build.returns(compiledMail);
 
-                readArmoredStub.returns({keys: [{}]});
-                signAndEncryptStub.withArgs([{}], pgpbuilder._privateKey, compiledMail).yields(null, ct);
+                readArmoredStub.returns({
+                    keys: [{}]
+                });
+                signAndEncryptStub.withArgs([{}], pgpbuilder._privateKey, compiledMail).returns(new Promise(function(resolve) {
+                    resolve(ct);
+                }));
 
 
                 pgpbuilder.encrypt({
@@ -279,10 +307,20 @@ define(function(require) {
                 envelope = {};
 
                 mail = {
-                    from: [{ address: 'a@a.io' }],
-                    to: [{ address: 'b@b.io' }, { address: 'c@c.io' }],
-                    cc: [{ address: 'd@d.io' }],
-                    bcc: [{ address: 'e@e.io' }],
+                    from: [{
+                        address: 'a@a.io'
+                    }],
+                    to: [{
+                        address: 'b@b.io'
+                    }, {
+                        address: 'c@c.io'
+                    }],
+                    cc: [{
+                        address: 'd@d.io'
+                    }],
+                    bcc: [{
+                        address: 'e@e.io'
+                    }],
                     subject: 'foobar',
                     headers: {
                         'in-reply-to': 'zzz'
