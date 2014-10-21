@@ -22,7 +22,7 @@
     "test": "grunt"
   },
   "dependencies": {
-    "mailbuild": "~0.3.5",
+    "mailbuild": "~0.3.7",
     "openpgp": "~0.8.1"
   },
   "devDependencies": {
