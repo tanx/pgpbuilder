@@ -1,22 +1,20 @@
-'use strict';
+(function(factory) {
+    'use strict';
 
-if (typeof exports === 'object' && typeof define !== 'function') {
-    var define = function(factory) {
-        factory(require, exports, module);
-    };
-}
+    if (typeof define === 'function' && define.amd) {
+        ES6Promise.polyfill(); // load ES6 Promises polyfill
+        define(['chai', 'sinon', 'mailbuild', '../src/pgpbuilder', 'openpgp'], factory);
+    } else if (typeof exports === 'object') {
+        require('es6-promise').polyfill(); // load ES6 Promises polyfill
+        module.exports = factory(require('chai'), require('sinon'), require('mailbuild'), require('../src/pgpbuilder'), require('openpgp'));
+    }
+})(function(chai, sinon, Mailbuild, PgpBuilder, openpgp) {
+    'use strict';
 
-define(function(require) {
-    var chai = require('chai'),
-        expect = chai.expect,
-        sinon = require('sinon'),
-        Mailbuild = require('mailbuild'),
-        PgpBuilder = require('../src/pgpbuilder'),
-        openpgp = require('openpgp');
+    var expect = chai.expect;
 
     describe('unit tests', function() {
         chai.Assertion.includeStack = true;
-        this.timeout(999999);
         var pgpbuilder;
 
         beforeEach(function() {
@@ -50,13 +48,10 @@ define(function(require) {
                     }]
                 });
 
-                pgpbuilder.setPrivateKey(opts, function(err) {
-                    expect(err).to.not.exist;
+                pgpbuilder.setPrivateKey(opts).then(function() {
                     expect(readArmoredStub.calledWith(opts.privateKeyArmored)).to.be.true;
                     expect(pgpbuilder._privateKey).to.exist;
-
-                    done();
-                });
+                }).then(done);
             });
 
             it('should not set the private key due to wrong password', function(done) {
@@ -73,8 +68,7 @@ define(function(require) {
                     }]
                 });
 
-                pgpbuilder.setPrivateKey(opts, function(err) {
-                    expect(err).to.exist;
+                pgpbuilder.setPrivateKey(opts).catch(function() {
                     expect(readArmoredStub.calledWith(opts.privateKeyArmored)).to.be.true;
                     expect(pgpbuilder._privateKey).to.not.exist;
 
@@ -90,7 +84,7 @@ define(function(require) {
 
                 readArmoredStub.throws('FOOBAR!');
 
-                pgpbuilder.setPrivateKey(opts, function(err) {
+                pgpbuilder.setPrivateKey(opts).catch(function(err) {
                     expect(err).to.exist;
                     expect(readArmoredStub.calledWith(opts.privateKeyArmored)).to.be.true;
                     expect(pgpbuilder._privateKey).to.not.exist;
@@ -160,10 +154,9 @@ define(function(require) {
                 pgpbuilder.buildSigned({
                     mail: mail,
                     rootNode: rootNode // test only
-                }, function(error, build, envelope) {
-                    expect(error).to.not.exist;
-                    expect(build).to.equal(compiledMail);
-                    expect(envelope).to.equal(envelope);
+                }).then(function(build) {
+                    expect(build.rfcMessage).to.equal(compiledMail);
+                    expect(build.smtpInfo).to.equal(envelope);
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/signed; micalg=pgp-sha256; protocol=application/pgp-signature')).to.be.true;
                     expect(textNode.setHeader.calledWith('content-transfer-encoding', 'quoted-printable')).to.be.true;
@@ -187,9 +180,7 @@ define(function(require) {
                     })).to.be.true;
 
                     openpgp.signClearMessage.restore();
-
-                    done();
-                });
+                }).then(done);
             });
         });
 
@@ -263,8 +254,7 @@ define(function(require) {
                     mail: mail,
                     publicKeysArmored: keys,
                     rootNode: rootNode // test only
-                }, function(error, mail) {
-                    expect(error).to.not.exist;
+                }).then(function(mail) {
                     expect(mail).to.exist;
                     expect(mail.body).to.equal(ct);
                     expect(mail.attachments).to.be.empty;
@@ -287,9 +277,7 @@ define(function(require) {
                     openpgp.key.readArmored.restore();
                     openpgp.signAndEncryptMessage.restore();
                     openpgp.signClearMessage.restore();
-
-                    done();
-                });
+                }).then(done);
             });
         });
 
@@ -341,10 +329,9 @@ define(function(require) {
                 pgpbuilder.buildEncrypted({
                     mail: mail,
                     rootNode: rootNode // test only
-                }, function(error, build, envelope) {
-                    expect(error).to.not.exist;
-                    expect(build).to.equal(compiledMail);
-                    expect(envelope).to.equal(envelope);
+                }).then(function(build) {
+                    expect(build.rfcMessage).to.equal(compiledMail);
+                    // expect(build.smtpInfo).to.equal(envelope);
 
                     expect(rootNode.setHeader.calledWith('content-type', 'multipart/encrypted; protocol=application/pgp-encrypted')).to.be.true;
                     expect(rootNode.setHeader.calledWith('content-transfer-encoding', '7bit')).to.be.true;
@@ -368,9 +355,7 @@ define(function(require) {
                     expect(rootNode.setHeader.calledWith({
                         'in-reply-to': mail.headers['in-reply-to']
                     })).to.be.true;
-
-                    done();
-                });
+                }).then(done);
             });
         });
     });

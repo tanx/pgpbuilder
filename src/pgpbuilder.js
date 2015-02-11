@@ -28,25 +28,24 @@ define(function(require) {
      * Set the private key used to sign your messages
      * @param {String} options.privateKey ASCII-armored private key to sign the messages
      * @param {String} options.passphrase The passphrase to encrypt options.armoredPrivateKey
-     * @param {Function} callback(error) Indicates that the private key has been set, or provides error information
+     * 
+     * @return {Promise}
      */
-    PgpBuilder.prototype.setPrivateKey = function(options, callback) {
-        var privateKey;
+    PgpBuilder.prototype.setPrivateKey = function(options) {
+        var self = this;
 
-        // decrypt the private key (for signing)
-        try {
-            privateKey = this._pgp.key.readArmored(options.privateKeyArmored).keys[0];
+        return new Promise(function(resolve) {
+            // decrypt the private key (for signing)
+            var privateKey = self._pgp.key.readArmored(options.privateKeyArmored).keys[0];
             if (!privateKey.decrypt(options.passphrase)) {
-                callback(new Error('Wrong passphrase! Could not decrypt the private key!'));
-                return;
+                throw new Error('Wrong passphrase! Could not decrypt the private key!');
             }
-        } catch (err) {
-            callback(err);
-            return;
-        }
 
-        this._privateKey = privateKey;
-        callback();
+            self._privateKey = privateKey;
+            resolve();
+        }).catch(function(error) {
+            throw new Error('Could not parse armored private key! ' + error.message); // rethrow with descriptive error
+        });
     };
 
     /**
@@ -54,14 +53,16 @@ define(function(require) {
      * @param {String} options.mail.body Plain text body to be sent with the mail
      * @param {Array} options.mail.attachments (optional) Array of attachment objects with filename {String}, content {Uint8Array}, and mimeType {String}
      * @param {Array} options.publicKeysArmored The public keys with which the message should be encrypted
-     * @param {Function} callback(error, mail) Invoked when the mail has been encrypted, or contains information in case of an error
+     *
+     * @return {Promise<mail>} Invoked when the mail has been encrypted.
      */
-    PgpBuilder.prototype.encrypt = function(options, callback) {
+    PgpBuilder.prototype.encrypt = function(options) {
         var self = this;
 
         if (!this._privateKey) {
-            callback(new Error('No private key has been set. Cannot sign mails!'));
-            return;
+            return new Promise(function() {
+                throw new Error('No private key has been set. Cannot sign mails!');
+            });
         }
 
         options.mail.attachments = options.mail.attachments || [];
@@ -69,32 +70,18 @@ define(function(require) {
         var rootNode = options.rootNode || new Mailbuild();
 
         // create the signed mime tree
-        self._createSignedMimeTree(options.mail, rootNode, onBuild);
-
-        function onBuild(err) {
-            if (err) {
-                callback(err);
-                return;
-            }
-
+        return self._createSignedMimeTree(options.mail, rootNode).then(function() {
             var plaintext = rootNode.build(),
                 publicKeys = [];
 
             // parse the ASCII-armored public keys to encrypt the signed mime tree
-            try {
-                options.publicKeysArmored.forEach(function(key) {
-                    publicKeys.push(self._pgp.key.readArmored(key).keys[0]);
-                });
-            } catch (err) {
-                callback(err);
-                return;
-            }
+            options.publicKeysArmored.forEach(function(key) {
+                publicKeys.push(self._pgp.key.readArmored(key).keys[0]);
+            });
 
             // encrypt the signed mime tree
-            self._pgp.signAndEncryptMessage(publicKeys, self._privateKey, plaintext).then(onEncrypted).catch(callback);
-        }
-
-        function onEncrypted(ciphertext) {
+            return self._pgp.signAndEncryptMessage(publicKeys, self._privateKey, plaintext);
+        }).then(function(ciphertext) {
             // replace the mail body with the ciphertext and empty the attachment
             // (attachment is now within the ciphertext!)
             options.mail.encrypted = true;
@@ -105,8 +92,8 @@ define(function(require) {
                 content: ciphertext
             }];
 
-            callback(null, options.mail);
-        }
+            return options.mail;
+        });
     };
 
     /**
@@ -118,23 +105,27 @@ define(function(require) {
      * @param {Array} options.mail.bcc (optional) Array of ASCII strings representing the recipient, see mail.to
      * @param {String} options.mail.subject String containing with the mail's subject
      * @param {String} options.mail.headers Object custom headers to add to the message header
-     * @param {Function} callback(error, rfcMessage, smtpInfo) Invoked when the mail has been built and the smtp information has been created, or gives information in case an error occurred.
+     *
+     * @return {Promise<rfcMessage, smtpInfo>} Invoked when the mail has been built and the smtp information has been created.
      */
-    PgpBuilder.prototype.buildEncrypted = function(options, callback) {
+    PgpBuilder.prototype.buildEncrypted = function(options) {
+        var self = this;
+
         // only build the encrypted rfc message for mails that have been encrypted before...
-        if (!options.mail.encrypted) {
-            callback(new Error('The mail was not encrypted'));
-        }
+        return new Promise(function(resolve) {
+            if (!self._privateKey) {
+                throw new Error('No private key has been set. Cannot sign mails!');
+            }
 
-        var rootNode = options.rootNode || new Mailbuild();
-
-        // create the PGP/MIME tree
-        this._createEncryptedMimeTree(options.mail.bodyParts[0].content, rootNode);
-
-        // configure the envelope
-        this._setEnvelope(options.mail, rootNode);
-
-        callback(null, rootNode.build(), rootNode.getEnvelope());
+            // create the PGP/MIME tree
+            var rootNode = options.rootNode || new Mailbuild();
+            self._createEncryptedMimeTree(options.mail.bodyParts[0].content, rootNode);
+            self._setEnvelope(options.mail, rootNode); // configure the envelope
+            resolve({
+                rfcMessage: rootNode.build(),
+                smtpInfo: rootNode.getEnvelope()
+            });
+        });
     };
 
     /**
@@ -146,32 +137,28 @@ define(function(require) {
      * @param {String} options.mail.subject String containing with the mail's subject
      * @param {String} options.mail.body Plain text body to be sent with the mail
      * @param {Array} options.mail.attachments (optional) Array of attachment objects with filename {String}, content {Uint8Array}, and mimeType {String}
-     * @param {Function} callback(error, rfcMessage, smtpInfo) Invoked when the mail has been built and the smtp information has been created, or gives information in case an error occurred.
+     *
+     * @return {Promise<rfcMessage, smtpInfo>} Invoked when the mail has been built and the smtp information has been created.
      */
-    PgpBuilder.prototype.buildSigned = function(options, callback) {
+    PgpBuilder.prototype.buildSigned = function(options) {
         var self = this;
 
         if (!this._privateKey) {
-            callback(new Error('No private key has been set. Cannot sign mails!'));
-            return;
+            return new Promise(function() {
+                throw new Error('No private key has been set. Cannot sign mails!');
+            });
         }
 
         var rootNode = options.rootNode || new Mailbuild();
 
         // create a signed mime tree
-        self._createSignedMimeTree(options.mail, rootNode, onSigned);
-
-        function onSigned(err) {
-            if (err) {
-                callback(err);
-                return;
-            }
-
-            // configure the envelope data
-            self._setEnvelope(options.mail, rootNode);
-
-            callback(null, rootNode.build(), rootNode.getEnvelope());
-        }
+        return self._createSignedMimeTree(options.mail, rootNode).then(function() {
+            self._setEnvelope(options.mail, rootNode); // configure the envelope data
+            return {
+                rfcMessage: rootNode.build(),
+                smtpInfo: rootNode.getEnvelope()
+            };
+        });
     };
 
     //
@@ -192,7 +179,7 @@ define(function(require) {
         }
     };
 
-    PgpBuilder.prototype._createSignedMimeTree = function(mail, rootNode, callback) {
+    PgpBuilder.prototype._createSignedMimeTree = function(mail, rootNode) {
         var contentNode, textNode, cleartext;
 
         //
@@ -250,9 +237,7 @@ define(function(require) {
         //
 
         cleartext = contentNode.build();
-        this._pgp.signClearMessage([this._privateKey], cleartext).then(onSigned).catch(callback);
-
-        function onSigned(signedCleartext) {
+        return this._pgp.signClearMessage([this._privateKey], cleartext).then(function(signedCleartext) {
             var signatureHeader = '-----BEGIN PGP SIGNATURE-----';
             var signature = signatureHeader + signedCleartext.split(signatureHeader).pop();
             var signatureNode = rootNode.createChild('application/pgp-signature');
@@ -261,9 +246,7 @@ define(function(require) {
 
             signedBodyPartRoot.message = cleartext;
             signedBodyPartRoot.signature = signature;
-
-            callback();
-        }
+        });
     };
 
     PgpBuilder.prototype._createEncryptedMimeTree = function(ciphertext, rootNode) {
