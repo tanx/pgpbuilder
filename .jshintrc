@@ -27,6 +27,7 @@
         "afterEach": true,
         "window": true,
         "mocha": true,
-        "mochaPhantomJS": true
+        "mochaPhantomJS": true,
+        "ES6Promise": true
 	}
 }
