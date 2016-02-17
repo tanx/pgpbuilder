@@ -3,10 +3,10 @@
 
     if (typeof define === 'function' && define.amd) {
         ES6Promise.polyfill(); // load ES6 Promises polyfill
-        define(['chai', 'sinon', 'mailbuild', '../src/pgpbuilder', 'openpgp'], factory);
+        define(['chai', 'sinon', 'emailjs-mime-builder', '../src/pgpbuilder', 'openpgp'], factory);
     } else if (typeof exports === 'object') {
         require('es6-promise').polyfill(); // load ES6 Promises polyfill
-        module.exports = factory(require('chai'), require('sinon'), require('mailbuild'), require('../src/pgpbuilder'), require('openpgp'));
+        module.exports = factory(require('chai'), require('sinon'), require('emailjs-mime-builder'), require('../src/pgpbuilder'), require('openpgp'));
     }
 })(function(chai, sinon, Mailbuild, PgpBuilder, openpgp) {
     'use strict';

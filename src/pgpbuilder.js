@@ -7,7 +7,7 @@ if (typeof exports === 'object' && typeof define !== 'function') {
 
 define(function(require) {
     var openpgp = typeof window !== 'undefined' && window.openpgp ? window.openpgp : require('openpgp'),
-        Mailbuild = require('mailbuild'),
+        Mailbuild = require('emailjs-mime-builder'),
         PgpBuilder;
 
     /**
@@ -28,7 +28,7 @@ define(function(require) {
      * Set the private key used to sign your messages
      * @param {String} options.privateKey ASCII-armored private key to sign the messages
      * @param {String} options.passphrase The passphrase to encrypt options.armoredPrivateKey
-     * 
+     *
      * @return {Promise}
      */
     PgpBuilder.prototype.setPrivateKey = function(options) {
