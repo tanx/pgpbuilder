@@ -143,9 +143,9 @@
                 rootNode.createChild.withArgs('application/pgp-signature').returns(signatureNode);
 
                 contentNode.build.returns(rfc);
-                signClearStub = sinon.stub(openpgp, 'signClearMessage');
-                signClearStub.withArgs([pgpbuilder._privateKey], rfc).returns(new Promise(function(resolve) {
-                    resolve(sign);
+                signClearStub = sinon.stub(openpgp.default, 'sign');
+                signClearStub.withArgs({ privateKeys:[pgpbuilder._privateKey], data:rfc }).returns(new Promise(function(resolve) {
+                    resolve({ data:sign });
                 }));
 
                 rootNode.build.returns(compiledMail);
@@ -179,7 +179,7 @@
                         bcc: mail.bcc
                     })).to.be.true;
 
-                    openpgp.signClearMessage.restore();
+                    signClearStub.restore();
                 }).then(done);
             });
         });
@@ -193,8 +193,8 @@
                     textNode = sinon.createStubInstance(Mailbuild),
                     attmtNode = sinon.createStubInstance(Mailbuild),
                     signatureNode = sinon.createStubInstance(Mailbuild),
-                    signClearStub = sinon.stub(openpgp, 'signClearMessage'),
-                    signAndEncryptStub = sinon.stub(openpgp, 'signAndEncryptMessage'),
+                    signClearStub = sinon.stub(openpgp.default, 'sign'),
+                    signAndEncryptStub = sinon.stub(openpgp.default, 'encrypt'),
                     readArmoredStub = sinon.stub(openpgp.key, 'readArmored');
 
                 body = 'trollolololo';
@@ -236,8 +236,8 @@
                 rootNode.createChild.withArgs('application/pgp-signature').returns(signatureNode);
 
                 contentNode.build.returns(rfc);
-                signClearStub.withArgs([pgpbuilder._privateKey], rfc).returns(new Promise(function(resolve) {
-                    resolve(sign);
+                signClearStub.withArgs({ privateKeys:[pgpbuilder._privateKey], data:rfc }).returns(new Promise(function(resolve) {
+                    resolve({ data:sign });
                 }));
 
                 rootNode.build.returns(compiledMail);
@@ -245,8 +245,8 @@
                 readArmoredStub.returns({
                     keys: [{}]
                 });
-                signAndEncryptStub.withArgs([{}], pgpbuilder._privateKey, compiledMail).returns(new Promise(function(resolve) {
-                    resolve(ct);
+                signAndEncryptStub.withArgs({publicKeys:[{}], privateKeys:pgpbuilder._privateKey, data:compiledMail }).returns(new Promise(function(resolve) {
+                    resolve({ data:ct });
                 }));
 
 
@@ -275,8 +275,8 @@
                     expect(signAndEncryptStub.calledOnce).to.be.true;
 
                     openpgp.key.readArmored.restore();
-                    openpgp.signAndEncryptMessage.restore();
-                    openpgp.signClearMessage.restore();
+                    signAndEncryptStub.restore();
+                    signClearStub.restore();
                 }).then(done);
             });
         });

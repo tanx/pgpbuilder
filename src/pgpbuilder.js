@@ -17,10 +17,12 @@ define(function(require) {
     PgpBuilder = function(options, pgp) {
         options = options || {};
         this._pgp = pgp || openpgp;
+        this._pgpKey = this._pgp.key; // get key module
+        this._pgp = this._pgp.default; // get ES6 default module
 
         // set pgp worker path for in browser use
         if (typeof window !== 'undefined' && window.Worker && options.pgpWorkerPath) {
-            this._pgp.initWorker(options.pgpWorkerPath);
+            this._pgp.initWorker({ path:options.pgpWorkerPath });
         }
     };
 
@@ -36,7 +38,7 @@ define(function(require) {
 
         return new Promise(function(resolve) {
             // decrypt the private key (for signing)
-            var privateKey = self._pgp.key.readArmored(options.privateKeyArmored).keys[0];
+            var privateKey = self._pgpKey.readArmored(options.privateKeyArmored).keys[0];
             if (!privateKey.decrypt(options.passphrase)) {
                 throw new Error('Wrong passphrase! Could not decrypt the private key!');
             }
@@ -76,20 +78,20 @@ define(function(require) {
 
             // parse the ASCII-armored public keys to encrypt the signed mime tree
             options.publicKeysArmored.forEach(function(key) {
-                publicKeys.push(self._pgp.key.readArmored(key).keys[0]);
+                publicKeys.push(self._pgpKey.readArmored(key).keys[0]);
             });
 
             // encrypt the signed mime tree
-            return self._pgp.signAndEncryptMessage(publicKeys, self._privateKey, plaintext);
+            return self._pgp.encrypt({ publicKeys:publicKeys, privateKeys:self._privateKey, data:plaintext });
         }).then(function(ciphertext) {
             // replace the mail body with the ciphertext and empty the attachment
             // (attachment is now within the ciphertext!)
             options.mail.encrypted = true;
-            options.mail.body = ciphertext;
+            options.mail.body = ciphertext.data;
             options.mail.attachments.length = 0;
             options.mail.bodyParts = [{
                 type: 'encrypted',
-                content: ciphertext
+                content: ciphertext.data
             }];
 
             return options.mail;
@@ -237,9 +239,9 @@ define(function(require) {
         //
 
         cleartext = contentNode.build();
-        return this._pgp.signClearMessage([this._privateKey], cleartext).then(function(signedCleartext) {
+        return this._pgp.sign({ privateKeys:[this._privateKey], data:cleartext }).then(function(signedCleartext) {
             var signatureHeader = '-----BEGIN PGP SIGNATURE-----';
-            var signature = signatureHeader + signedCleartext.split(signatureHeader).pop();
+            var signature = signatureHeader + signedCleartext.data.split(signatureHeader).pop();
             var signatureNode = rootNode.createChild('application/pgp-signature');
             signatureNode.setHeader('content-transfer-encoding', '7bit');
             signatureNode.setContent(signature);

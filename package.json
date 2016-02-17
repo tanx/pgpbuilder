@@ -9,11 +9,8 @@
     "type": "git",
     "url": "http://github.com/whiteout-io/pgpbuilder.git"
   },
-  "version": "0.6.0",
-  "licenses": [{
-    "type": "MIT",
-    "url": "http://github.com/whiteout-io/pgpbuilder/blob/master/LICENSE"
-  }],
+  "version": "1.0.0",
+  "license": "MIT",
   "engines": {
     "node": ">=0.10"
   },
@@ -23,7 +20,7 @@
   },
   "dependencies": {
     "emailjs-mime-builder": "^1.0.1",
-    "openpgp": "~0.8.1"
+    "openpgp": "^2.0.0"
   },
   "devDependencies": {
     "es6-promise": "^2.0.1",
@@ -36,7 +33,7 @@
     "mocha": "~1.16.2",
     "phantomjs": "~1.9.7-1",
     "requirejs": "~2.1.10",
-    "sinon": "~1.7.3",
+    "sinon": "^1.17.3",
     "sinon-chai": "~2.5.0",
     "mailparser": "^0.4.2"
   },
