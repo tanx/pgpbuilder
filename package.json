@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "emailjs-mime-builder": "^1.0.1",
-    "openpgp": "^2.0.0"
+    "openpgp": "^4.10.4"
   },
   "devDependencies": {
     "es6-promise": "^2.0.1",
